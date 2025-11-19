@@ -3,9 +3,21 @@ import {
   Milestone, MilestoneStatus, Message, FileRecord, ApprovalItem, ApprovalStatus 
 } from '../types';
 
-// --- SEED DATA ---
+// --- CONSTANTS ---
+const STORAGE_KEYS = {
+  USERS: 'validate_users_v1',
+  ORGS: 'validate_orgs_v1',
+  PROJECTS: 'validate_projects_v1',
+  MILESTONES: 'validate_milestones_v1',
+  MESSAGES: 'validate_messages_v1',
+  FILES: 'validate_files_v1',
+  APPROVALS: 'validate_approvals_v1',
+};
 
-export const USERS: User[] = [
+// --- SEED DATA ---
+// These are used only if no data is found in LocalStorage
+
+const SEED_USERS: User[] = [
   {
     id: 'u1',
     name: 'Sarah Producer',
@@ -29,7 +41,7 @@ export const USERS: User[] = [
   }
 ];
 
-export const ORGS: Organization[] = [
+const SEED_ORGS: Organization[] = [
   {
     id: 'org1',
     name: 'Silver Dollar City',
@@ -44,7 +56,7 @@ export const ORGS: Organization[] = [
   }
 ];
 
-export const PROJECTS: Project[] = [
+const SEED_PROJECTS: Project[] = [
   {
     id: 'p1',
     organizationId: 'org1',
@@ -65,8 +77,7 @@ export const PROJECTS: Project[] = [
   }
 ];
 
-// CHANGED: mutable 'let' so we can filter/reassign
-export let MILESTONES: Milestone[] = [
+const SEED_MILESTONES: Milestone[] = [
   {
     id: 'm1',
     projectId: 'p1',
@@ -97,7 +108,7 @@ export let MILESTONES: Milestone[] = [
   }
 ];
 
-export const MESSAGES: Message[] = [
+const SEED_MESSAGES: Message[] = [
   {
     id: 'msg1',
     projectId: 'p1',
@@ -127,7 +138,7 @@ export const MESSAGES: Message[] = [
   }
 ];
 
-export const FILES: FileRecord[] = [
+const SEED_FILES: FileRecord[] = [
   {
     id: 'f1',
     projectId: 'p1',
@@ -178,16 +189,48 @@ export const FILES: FileRecord[] = [
   }
 ];
 
-export const APPROVALS: ApprovalItem[] = [
+const SEED_APPROVALS: ApprovalItem[] = [
   {
     id: 'a1',
     projectId: 'p1',
     title: 'Latest Cut - 60s Spot',
     description: 'Addressing color and pacing notes. Updated music track included.',
-    linkToReview: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+    linkToReview: 'https://vimeo.com/1136510619/e56ec25b0c',
     status: ApprovalStatus.PENDING
   }
 ];
+
+// --- PERSISTENCE HELPERS ---
+
+const load = <T>(key: string, fallback: T): T => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch (e) {
+    console.error(`Failed to load data for key ${key}`, e);
+    return fallback;
+  }
+};
+
+const save = (key: string, data: any) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.error(`Failed to save data for key ${key}`, e);
+  }
+};
+
+// --- INITIALIZE STATE ---
+// We export 'let' variables so they can be mutated, but they are initialized from LocalStorage (or seed)
+export let USERS: User[] = load(STORAGE_KEYS.USERS, SEED_USERS);
+export let ORGS: Organization[] = load(STORAGE_KEYS.ORGS, SEED_ORGS);
+export let PROJECTS: Project[] = load(STORAGE_KEYS.PROJECTS, SEED_PROJECTS);
+export let MILESTONES: Milestone[] = load(STORAGE_KEYS.MILESTONES, SEED_MILESTONES);
+export let MESSAGES: Message[] = load(STORAGE_KEYS.MESSAGES, SEED_MESSAGES);
+export let FILES: FileRecord[] = load(STORAGE_KEYS.FILES, SEED_FILES);
+export let APPROVALS: ApprovalItem[] = load(STORAGE_KEYS.APPROVALS, SEED_APPROVALS);
 
 // --- MOCK API SERVICE ---
 
@@ -197,7 +240,6 @@ export const mockApi = {
       setTimeout(() => {
         const user = USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
         if (user) {
-          // Simple mock validation: check password if one is set on the user
           if (user.password && user.password !== password) {
             resolve(null);
             return;
@@ -224,6 +266,7 @@ export const mockApi = {
         } else {
           ORGS.push(org);
         }
+        save(STORAGE_KEYS.ORGS, ORGS);
         resolve(org);
       }, 400);
     });
@@ -232,7 +275,10 @@ export const mockApi = {
     return new Promise(resolve => {
       setTimeout(() => {
         const idx = ORGS.findIndex(o => o.id === id);
-        if (idx >= 0) ORGS.splice(idx, 1);
+        if (idx >= 0) {
+            ORGS.splice(idx, 1);
+            save(STORAGE_KEYS.ORGS, ORGS);
+        }
         resolve();
       }, 400);
     });
@@ -251,6 +297,7 @@ export const mockApi = {
         } else {
           USERS.push(user);
         }
+        save(STORAGE_KEYS.USERS, USERS);
         resolve(user);
       }, 400);
     });
@@ -259,17 +306,22 @@ export const mockApi = {
     return new Promise(resolve => {
       setTimeout(() => {
         const idx = USERS.findIndex(u => u.id === id);
-        if (idx >= 0) USERS.splice(idx, 1);
+        if (idx >= 0) {
+            USERS.splice(idx, 1);
+            save(STORAGE_KEYS.USERS, USERS);
+        }
         resolve();
       }, 400);
     });
   },
 
+  // Project Management
   getProjects: async (user: User): Promise<Project[]> => {
     return new Promise(resolve => {
       setTimeout(() => {
+        // Always return fresh copy from current state
         if (user.role === UserRole.ADMIN) {
-          resolve(PROJECTS);
+          resolve([...PROJECTS]); 
         } else {
           resolve(PROJECTS.filter(p => p.organizationId === user.organizationId));
         }
@@ -277,11 +329,55 @@ export const mockApi = {
     });
   },
 
+  getProjectsByOrg: async (orgId: string): Promise<Project[]> => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve(PROJECTS.filter(p => p.organizationId === orgId));
+      }, 400);
+    });
+  },
+
+  saveProject: async (project: Project): Promise<Project> => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        const idx = PROJECTS.findIndex(p => p.id === project.id);
+        if (idx >= 0) {
+          PROJECTS[idx] = project;
+        } else {
+          PROJECTS.unshift(project);
+        }
+        save(STORAGE_KEYS.PROJECTS, PROJECTS);
+        resolve(project);
+      }, 400);
+    });
+  },
+
+  deleteProject: async (projectId: string): Promise<void> => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        const idx = PROJECTS.findIndex(p => p.id === projectId);
+        if (idx >= 0) {
+          PROJECTS.splice(idx, 1);
+          save(STORAGE_KEYS.PROJECTS, PROJECTS);
+        }
+        resolve();
+      }, 400);
+    });
+  },
+
   getProjectDetails: async (projectId: string) => {
     return new Promise<{project: Project, milestones: Milestone[], messages: Message[], files: FileRecord[], approvals: ApprovalItem[]}>(resolve => {
       setTimeout(() => {
+        const proj = PROJECTS.find(p => p.id === projectId);
+        if (!proj) {
+            resolve({
+                project: {} as Project,
+                milestones: [], messages: [], files: [], approvals: []
+            });
+            return;
+        }
         resolve({
-          project: PROJECTS.find(p => p.id === projectId)!,
+          project: proj,
           milestones: MILESTONES.filter(m => m.projectId === projectId).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()),
           messages: MESSAGES.filter(m => m.projectId === projectId).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
           files: FILES.filter(f => f.projectId === projectId),
@@ -301,6 +397,7 @@ export const mockApi = {
         } else {
           MILESTONES.push(milestone);
         }
+        save(STORAGE_KEYS.MILESTONES, MILESTONES);
         resolve(milestone);
       }, 400);
     });
@@ -308,8 +405,38 @@ export const mockApi = {
   deleteMilestone: async (id: string): Promise<void> => {
     return new Promise(resolve => {
       setTimeout(() => {
-        // CHANGED: Actually filter the array to remove the item
-        MILESTONES = MILESTONES.filter(m => m.id !== id);
+        const idx = MILESTONES.findIndex(m => m.id === id);
+        if (idx >= 0) {
+          MILESTONES.splice(idx, 1);
+          save(STORAGE_KEYS.MILESTONES, MILESTONES);
+        }
+        resolve();
+      }, 400);
+    });
+  },
+
+  // Approval Management
+  saveApproval: async (approval: ApprovalItem): Promise<ApprovalItem> => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        const idx = APPROVALS.findIndex(a => a.id === approval.id);
+        if (idx >= 0) {
+          APPROVALS[idx] = approval;
+        } else {
+          APPROVALS.push(approval);
+        }
+        save(STORAGE_KEYS.APPROVALS, APPROVALS);
+        resolve(approval);
+      }, 400);
+    });
+  },
+
+  deleteApproval: async (id: string): Promise<void> => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        // Reassigning array to ensure reference change and persistence
+        APPROVALS = APPROVALS.filter(a => a.id !== id);
+        save(STORAGE_KEYS.APPROVALS, APPROVALS);
         resolve();
       }, 400);
     });
@@ -328,7 +455,8 @@ export const mockApi = {
           createdAt: new Date().toISOString(),
           approvalItemId
         };
-        MESSAGES.push(newMsg); // Persist to mock store
+        MESSAGES.push(newMsg);
+        save(STORAGE_KEYS.MESSAGES, MESSAGES);
         resolve(newMsg);
       }, 300);
     });
@@ -337,7 +465,8 @@ export const mockApi = {
   uploadFile: async (file: FileRecord): Promise<FileRecord> => {
     return new Promise(resolve => {
       setTimeout(() => {
-        FILES.unshift(file); // Add to beginning of list
+        FILES.unshift(file);
+        save(STORAGE_KEYS.FILES, FILES);
         resolve(file);
       }, 800);
     });

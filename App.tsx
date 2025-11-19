@@ -8,8 +8,25 @@ import { Button, Input, TextArea, Card, StatusBadge, Modal, Select } from './com
 import { 
   LayoutDashboard, Users, Settings, LogOut, 
   ChevronRight, Clock, Paperclip, Send, Download, FileText, 
-  CheckCircle2, UploadCloud, Loader2, Image as ImageIcon, Lock, Trash2, Edit, Plus, Mail, Pencil, Calendar, Eye
+  CheckCircle2, UploadCloud, Loader2, Image as ImageIcon, Lock, Trash2, Edit, Plus, Mail, Pencil, Calendar, Eye, ExternalLink, AlertCircle
 } from 'lucide-react';
+
+// --- HELPER FUNCTIONS ---
+const getVimeoEmbedUrl = (url: string): string | null => {
+  // Matches standard Vimeo URLs: https://vimeo.com/123456789
+  // Matches private Vimeo URLs: https://vimeo.com/123456789/abcdef123
+  const match = url.match(/vimeo\.com\/(\d+)(?:\/([a-zA-Z0-9]+))?/);
+  if (match) {
+    const id = match[1];
+    const hash = match[2];
+    let src = `https://player.vimeo.com/video/${id}`;
+    if (hash) src += `?h=${hash}`;
+    // Add parameters for clean embed
+    src += `${src.includes('?') ? '&' : '?'}title=0&byline=0&portrait=0`;
+    return src;
+  }
+  return null;
+};
 
 // --- GLOBAL STATE ---
 
@@ -171,12 +188,57 @@ const DashboardView = ({ user, navigate }: { user: User, navigate: (v: View) => 
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<any>(null);
 
+  // New Project Modal State
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [newProject, setNewProject] = useState<Partial<Project>>({});
+
   useEffect(() => {
     mockApi.getProjects(user).then(setProjects);
     if (user.role === UserRole.ADMIN) {
       mockApi.getStats().then(setStats);
+      // Load Orgs for the new project dropdown
+      mockApi.getOrgs().then(setOrgs);
     }
   }, [user]);
+
+  const handleOpenNewProject = () => {
+    setNewProject({
+      status: ProjectStatus.DISCOVERY,
+      startDate: new Date().toISOString().split('T')[0]
+    });
+    setIsProjectModalOpen(true);
+  };
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProject.name || !newProject.organizationId) {
+      alert("Please fill in required fields.");
+      return;
+    }
+
+    const p: Project = {
+      id: `p${Date.now()}`,
+      organizationId: newProject.organizationId,
+      name: newProject.name,
+      description: newProject.description || '',
+      status: newProject.status as ProjectStatus,
+      startDate: newProject.startDate || new Date().toISOString().split('T')[0],
+      dueDate: newProject.dueDate
+    };
+
+    await mockApi.saveProject(p);
+    
+    // Only update local project list if we are admin or if we belong to that org (though dashboard usually shows own projects)
+    // Since we are creating, assume we are Admin. Admin dashboard shows ALL projects.
+    if (user.role === UserRole.ADMIN) {
+       setProjects(prev => [p, ...prev]);
+       const s = await mockApi.getStats();
+       setStats(s);
+    }
+
+    setIsProjectModalOpen(false);
+  };
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
@@ -210,7 +272,14 @@ const DashboardView = ({ user, navigate }: { user: User, navigate: (v: View) => 
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-medium text-white">Active Projects</h2>
           {user.role === UserRole.ADMIN && (
-            <Button variant="secondary" className="h-8 text-xs">New Project</Button>
+            <Button 
+              variant="secondary" 
+              className="h-8 text-xs" 
+              onClick={handleOpenNewProject}
+            >
+              <Plus className="w-3 h-3 mr-1.5" />
+              New Project
+            </Button>
           )}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -234,6 +303,11 @@ const DashboardView = ({ user, navigate }: { user: User, navigate: (v: View) => 
               </div>
             </Card>
           ))}
+          {projects.length === 0 && (
+             <div className="col-span-full py-12 text-center text-zinc-500 border border-dashed border-zinc-800 rounded-lg">
+               No active projects.
+             </div>
+          )}
         </div>
       </section>
 
@@ -246,6 +320,88 @@ const DashboardView = ({ user, navigate }: { user: User, navigate: (v: View) => 
           </div>
         </section>
       )}
+
+      {/* CREATE PROJECT MODAL */}
+      <Modal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} title="Create New Project">
+         <form onSubmit={handleCreateProject} className="space-y-4">
+           <div>
+              <label className="block text-xs text-zinc-400 mb-1">Client Organization *</label>
+              <Select 
+                value={newProject.organizationId || ''} 
+                onChange={e => setNewProject(prev => ({...prev, organizationId: e.target.value}))}
+                required
+              >
+                <option value="">Select Organization...</option>
+                {orgs.map(org => (
+                  <option key={org.id} value={org.id}>{org.name}</option>
+                ))}
+              </Select>
+           </div>
+
+           <div>
+              <label className="block text-xs text-zinc-400 mb-1">Project Name *</label>
+              <Input 
+                 value={newProject.name || ''} 
+                 onChange={e => setNewProject(prev => ({...prev, name: e.target.value}))} 
+                 placeholder="e.g. Summer Campaign 2024"
+                 required
+              />
+           </div>
+
+           <div>
+              <label className="block text-xs text-zinc-400 mb-1">Description</label>
+              <TextArea 
+                 value={newProject.description || ''} 
+                 onChange={e => setNewProject(prev => ({...prev, description: e.target.value}))} 
+                 placeholder="Brief project summary..."
+              />
+           </div>
+
+           <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Status</label>
+                <Select 
+                  value={newProject.status || ProjectStatus.DISCOVERY}
+                  onChange={e => setNewProject(prev => ({...prev, status: e.target.value as ProjectStatus}))}
+                >
+                  {Object.values(ProjectStatus).map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </Select>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-2 gap-4">
+              <div>
+                 <label className="block text-xs text-zinc-400 mb-1">Start Date</label>
+                 <div className="relative">
+                   <Input 
+                      type="date"
+                      value={newProject.startDate || ''} 
+                      onChange={e => setNewProject(prev => ({...prev, startDate: e.target.value}))} 
+                   />
+                   <Calendar className="absolute right-3 top-2.5 w-4 h-4 text-zinc-500 pointer-events-none" />
+                 </div>
+              </div>
+              <div>
+                 <label className="block text-xs text-zinc-400 mb-1">Due Date (Optional)</label>
+                 <div className="relative">
+                   <Input 
+                      type="date"
+                      value={newProject.dueDate || ''} 
+                      onChange={e => setNewProject(prev => ({...prev, dueDate: e.target.value}))} 
+                   />
+                   <Calendar className="absolute right-3 top-2.5 w-4 h-4 text-zinc-500 pointer-events-none" />
+                 </div>
+              </div>
+           </div>
+
+           <div className="pt-4 flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setIsProjectModalOpen(false)}>Cancel</Button>
+              <Button type="submit">Create Project</Button>
+           </div>
+         </form>
+      </Modal>
     </div>
   );
 };
@@ -256,9 +412,18 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
   const [activeTab, setActiveTab] = useState<'overview' | 'messages' | 'files' | 'approvals'>('overview');
   const [data, setData] = useState<{project: Project, milestones: Milestone[], messages: Message[], files: FileRecord[], approvals: ApprovalItem[]} | null>(null);
   const [msgBody, setMsgBody] = useState('');
+  const [isInternalNote, setIsInternalNote] = useState(false);
   
+  // Edit Project State
+  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [editProjectData, setEditProjectData] = useState<Partial<Project>>({});
+
   // Approval feedback state
   const [approvalInputs, setApprovalInputs] = useState<Record<string, string>>({});
+  
+  // Approval Modal State
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [editingApproval, setEditingApproval] = useState<Partial<ApprovalItem>>({});
 
   // Milestone Management State (Admin)
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
@@ -274,9 +439,10 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
 
   const handleSendMessage = async () => {
     if (!msgBody.trim() || !data) return;
-    const newMsg = await mockApi.sendMessage(projectId, user, msgBody, false, undefined);
+    const newMsg = await mockApi.sendMessage(projectId, user, msgBody, isInternalNote, undefined);
     setData({ ...data, messages: [...data.messages, newMsg] });
     setMsgBody('');
+    setIsInternalNote(false);
   };
   
   const handleSendApprovalFeedback = async (approvalId: string) => {
@@ -286,6 +452,16 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
     const newMsg = await mockApi.sendMessage(projectId, user, txt, false, approvalId);
     setData({ ...data, messages: [...data.messages, newMsg] });
     setApprovalInputs(prev => ({ ...prev, [approvalId]: '' }));
+  };
+
+  const handleUpdateApprovalStatus = async (approval: ApprovalItem, status: ApprovalStatus) => {
+    if (!data) return;
+    const updated = { ...approval, status };
+    await mockApi.saveApproval(updated);
+    setData(prev => prev ? ({
+        ...prev,
+        approvals: prev.approvals.map(a => a.id === updated.id ? updated : a)
+    }) : null);
   };
 
   const handleUploadClick = () => {
@@ -328,6 +504,37 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
     }
   };
 
+  // Project Edit Handlers
+  const handleEditProjectClick = () => {
+    if (!data) return;
+    setEditProjectData(data.project);
+    setIsEditProjectOpen(true);
+  };
+
+  const handleSaveProjectDetails = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data || !editProjectData.name) return;
+
+    const updatedProject = {
+      ...data.project,
+      ...editProjectData
+    } as Project;
+
+    await mockApi.saveProject(updatedProject);
+    setData({...data, project: updatedProject});
+    setIsEditProjectOpen(false);
+  };
+  
+  const handleDeleteProject = async () => {
+    if (!data) return;
+    
+    await mockApi.deleteProject(data.project.id);
+    
+    // Navigate back to dashboard after deletion
+    navigate({ name: 'DASHBOARD' });
+    setIsEditProjectOpen(false);
+  };
+
   // Milestone Handlers
   const openAddMilestone = () => {
     setEditingMilestone({
@@ -345,28 +552,15 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
   };
 
   const handleDeleteMilestone = async (milestoneId: string) => {
-    if (!window.confirm('Permanently delete this milestone?')) return;
-    
-    // 1. Optimistically update state
-    setData(prevData => {
-      if (!prevData) return null;
-      return {
-        ...prevData,
-        milestones: prevData.milestones.filter(m => m.id !== milestoneId)
-      };
-    });
+    await mockApi.deleteMilestone(milestoneId);
+    setData(prev => prev ? ({ ...prev, milestones: prev.milestones.filter(m => m.id !== milestoneId) }) : null);
+    setIsMilestoneModalOpen(false);
+    setEditingMilestone({});
+  };
 
-    try {
-      // 2. Call API
-      await mockApi.deleteMilestone(milestoneId);
-      
-      // 3. Close modal if deleting from within modal
-      setIsMilestoneModalOpen(false);
-      setEditingMilestone({});
-    } catch (error) {
-      console.error("Failed to delete milestone", error);
-      alert("Could not delete milestone. Please refresh.");
-    }
+  const handleDeleteMilestoneFromForm = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (editingMilestone.id) handleDeleteMilestone(editingMilestone.id);
   };
 
   const handleSaveMilestone = async (e: React.FormEvent) => {
@@ -393,13 +587,69 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
       } else {
         newMilestones = [...prevData.milestones, saved];
       }
-      // Re-sort
       newMilestones.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-      
       return { ...prevData, milestones: newMilestones };
     });
 
     setIsMilestoneModalOpen(false);
+  };
+
+  // Approval Handlers
+  const openAddApproval = () => {
+    setEditingApproval({
+      projectId,
+      title: '',
+      description: '',
+      linkToReview: '',
+      status: ApprovalStatus.PENDING
+    });
+    setIsApprovalModalOpen(true);
+  };
+
+  const openEditApproval = (approval: ApprovalItem) => {
+    setEditingApproval({...approval});
+    setIsApprovalModalOpen(true);
+  };
+
+  const handleDeleteApproval = async (approvalId: string) => {
+    if (!window.confirm("Are you sure you want to delete this approval asset?")) return;
+    
+    await mockApi.deleteApproval(approvalId);
+    
+    setData(prev => prev ? ({
+        ...prev,
+        approvals: prev.approvals.filter(a => a.id !== approvalId)
+    }) : null);
+
+    setIsApprovalModalOpen(false);
+    setEditingApproval({});
+  };
+
+  const handleSaveApproval = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingApproval.title || !editingApproval.linkToReview) return;
+
+    const approvalToSave = {
+      id: editingApproval.id || `a${Date.now()}`,
+      projectId: projectId,
+      title: editingApproval.title,
+      description: editingApproval.description || '',
+      linkToReview: editingApproval.linkToReview,
+      status: editingApproval.status || ApprovalStatus.PENDING
+    } as ApprovalItem;
+
+    await mockApi.saveApproval(approvalToSave);
+    
+    setData(prev => {
+      if (!prev) return null;
+      const exists = prev.approvals.find(a => a.id === approvalToSave.id);
+      if (exists) {
+        return { ...prev, approvals: prev.approvals.map(a => a.id === approvalToSave.id ? approvalToSave : a) };
+      }
+      return { ...prev, approvals: [...prev.approvals, approvalToSave] };
+    });
+
+    setIsApprovalModalOpen(false);
   };
 
 
@@ -488,7 +738,18 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
          </button>
          <div className="flex justify-between items-start">
            <div>
-            <h1 className="text-3xl font-light text-white mb-2">{data.project.name}</h1>
+            <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-light text-white">{data.project.name}</h1>
+                {user.role === UserRole.ADMIN && (
+                    <button 
+                      onClick={handleEditProjectClick} 
+                      className="p-1 text-zinc-500 hover:text-white transition-colors"
+                      title="Edit Project Details"
+                    >
+                        <Edit className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
             <div className="flex items-center gap-3">
               <StatusBadge status={data.project.status} />
               <span className="text-sm text-zinc-500 border-l border-zinc-700 pl-3">Due {data.project.dueDate}</span>
@@ -659,7 +920,12 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
                    <Button variant="ghost" className="px-2"><Paperclip className="w-4 h-4" /></Button>
                    {user.role === UserRole.ADMIN && (
                      <label className="flex items-center space-x-2 text-xs text-zinc-400 ml-2 cursor-pointer">
-                        <input type="checkbox" className="rounded bg-zinc-800 border-zinc-700" />
+                        <input 
+                          type="checkbox" 
+                          className="rounded bg-zinc-800 border-zinc-700" 
+                          checked={isInternalNote}
+                          onChange={(e) => setIsInternalNote(e.target.checked)}
+                        />
                         <span>Internal Note</span>
                      </label>
                    )}
@@ -674,123 +940,159 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
 
         {/* FILES TAB */}
         {activeTab === 'files' && (
-          <div>
-            <div className="flex justify-end mb-6">
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                onChange={handleFileChange}
-              />
-              <Button 
-                variant="secondary" 
-                onClick={handleUploadClick}
-                isLoading={isUploading}
-              >
-                <UploadCloud className="w-4 h-4 mr-2" /> Upload File
-              </Button>
+          <div className="space-y-8">
+            <div className="flex justify-between items-center bg-zinc-900/50 p-6 rounded-lg border border-dashed border-zinc-800">
+              <div>
+                <h3 className="text-white font-medium">Project Files</h3>
+                <p className="text-sm text-zinc-500 mt-1">Upload assets, scripts, and references here.</p>
+              </div>
+              <div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  onChange={handleFileChange}
+                />
+                <Button onClick={handleUploadClick} isLoading={isUploading}>
+                  <UploadCloud className="w-4 h-4 mr-2" /> Upload File
+                </Button>
+              </div>
             </div>
 
-            <div className="space-y-8">
-              {/* SECTION 1: CLIENT UPLOADS */}
-              <div>
-                <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Client Uploads</h3>
-                <FileTable 
-                  files={clientUploads} 
-                  emptyMessage="No files uploaded by client yet." 
-                />
-              </div>
+            <div>
+              <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Agency Deliverables</h3>
+              <FileTable files={agencyUploads} emptyMessage="No files from VALIDATE yet." />
+            </div>
 
-              {/* SECTION 2: AGENCY FILES */}
-              {(user.role === UserRole.ADMIN || agencyUploads.some(f => f.isClientVisible)) && (
-                <div>
-                  <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                    Agency Files
-                    {user.role === UserRole.ADMIN && <span className="text-[10px] text-yellow-500 bg-yellow-900/20 px-1.5 py-0.5 rounded border border-yellow-900/30 ml-auto">Admin View</span>}
-                  </h3>
-                  <FileTable 
-                    files={user.role === UserRole.ADMIN ? agencyUploads : agencyUploads.filter(f => f.isClientVisible)}
-                    emptyMessage="No files from VALIDATE yet."
-                  />
-                </div>
-              )}
+            <div>
+              <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Client Uploads</h3>
+              <FileTable files={clientUploads} emptyMessage="You haven't uploaded any files yet." />
             </div>
           </div>
         )}
 
         {/* APPROVALS TAB */}
         {activeTab === 'approvals' && (
-          <div className="grid gap-8 max-w-4xl mx-auto">
-            {data.approvals.map(item => {
-              const itemMessages = data.messages.filter(m => m.approvalItemId === item.id).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          <div className="max-w-4xl space-y-6">
+            {user.role === UserRole.ADMIN && (
+              <div className="flex justify-end">
+                 <Button variant="secondary" className="h-8 text-xs" onClick={openAddApproval}>
+                   <Plus className="w-3 h-3 mr-1.5" /> Add Approval
+                 </Button>
+              </div>
+            )}
+            {data.approvals.length === 0 && (
+               <div className="text-center py-12 text-zinc-500 border border-dashed border-zinc-800 rounded-lg">
+                 No active approval items.
+               </div>
+            )}
+            {data.approvals.map(approval => {
+              const vimeoEmbed = getVimeoEmbedUrl(approval.linkToReview);
               
               return (
-              <Card key={item.id} className="overflow-hidden">
-                <div className="aspect-video bg-black relative">
-                   {item.linkToReview && item.linkToReview.endsWith('.mp4') ? (
-                     <video 
-                       src={item.linkToReview} 
-                       controls 
-                       className="w-full h-full"
-                     >
-                       Your browser does not support the video tag.
-                     </video>
-                   ) : (
-                     <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                       <p>Video preview not available</p>
-                     </div>
-                   )}
+              <Card key={approval.id} className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                     <h3 className="text-xl font-medium text-white mb-1">{approval.title}</h3>
+                     <p className="text-zinc-400 text-sm">{approval.description}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={approval.status} type="approval" />
+                    {user.role === UserRole.ADMIN && (
+                        <div className="flex items-center gap-1 ml-2 pl-3 border-l border-zinc-700">
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); openEditApproval(approval); }}
+                                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded transition-colors"
+                                title="Edit Approval"
+                            >
+                                <Edit className="w-4 h-4" />
+                            </button>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); handleDeleteApproval(approval.id); }}
+                                className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-red-900/20 rounded transition-colors"
+                                title="Delete Approval"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
+                  </div>
                 </div>
-                <div className="p-6">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                       <div>
-                         <div className="flex items-center gap-3 mb-1">
-                           <h3 className="text-lg font-medium text-white">{item.title}</h3>
-                           <StatusBadge status={item.status} type="approval" />
-                         </div>
-                         <p className="text-sm text-zinc-400">{item.description}</p>
-                       </div>
-                       <Button variant="outline" className="shrink-0" onClick={() => window.open(item.linkToReview, '_blank')}>
-                         <Eye className="w-4 h-4 mr-2" /> Open Link
-                       </Button>
-                    </div>
-                    
-                    {/* Feedback section */}
-                    <div className="bg-zinc-900/50 rounded p-4 border border-zinc-800/50 mt-4">
-                       <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Feedback & Notes</h4>
-                       
-                       <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
-                          {itemMessages.length > 0 ? itemMessages.map(msg => {
-                             const isMe = msg.senderId === user.id;
-                             return (
-                               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                  <div className={`max-w-[90%] rounded px-3 py-2 text-sm ${isMe ? 'bg-zinc-700 text-zinc-100' : 'bg-zinc-800 text-zinc-300'}`}>
-                                     <div className="flex justify-between gap-2 mb-1">
-                                        <span className="text-[10px] font-bold opacity-70">{msg.senderName}</span>
-                                        <span className="text-[10px] opacity-50">{new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                     </div>
-                                     <p>{msg.body}</p>
-                                  </div>
-                               </div>
-                             )
-                          }) : (
-                            <p className="text-xs text-zinc-600 italic">No feedback yet.</p>
-                          )}
-                       </div>
+                
+                {/* VIDEO PLAYER IF DETECTED */}
+                {vimeoEmbed && (
+                  <div className="mb-6 rounded-lg overflow-hidden bg-black aspect-video relative border border-zinc-800 shadow-lg">
+                    <iframe 
+                      src={vimeoEmbed} 
+                      className="absolute top-0 left-0 w-full h-full" 
+                      frameBorder="0" 
+                      allow="autoplay; fullscreen; picture-in-picture" 
+                      allowFullScreen
+                      title={approval.title}
+                    ></iframe>
+                  </div>
+                )}
+                
+                <div className="bg-black/50 rounded-lg p-4 border border-zinc-800 flex justify-between items-center mb-6">
+                   <div className="text-sm text-zinc-400 font-mono truncate flex-1 mr-4">{approval.linkToReview}</div>
+                   <Button variant="secondary" className="h-8 text-xs" onClick={() => window.open(approval.linkToReview, '_blank')}>
+                      <ExternalLink className="w-3 h-3 mr-2" />
+                      Open Link
+                   </Button>
+                </div>
 
+                <div className="bg-zinc-900/50 p-4 rounded-lg">
+                  <h4 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-3">Discussion & Feedback</h4>
+                  <div className="space-y-4 mb-4 max-h-60 overflow-y-auto">
+                    {data.messages.filter(m => m.approvalItemId === approval.id).map(m => (
+                      <div key={m.id} className="text-sm">
+                        <span className="font-bold text-zinc-300">{m.senderName}: </span>
+                        <span className="text-zinc-400">{m.body}</span>
+                      </div>
+                    ))}
+                    {data.messages.filter(m => m.approvalItemId === approval.id).length === 0 && (
+                       <p className="text-zinc-600 italic text-sm">No feedback recorded yet.</p>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder="Add feedback or notes..." 
+                      className="bg-brand-black"
+                      value={approvalInputs[approval.id] || ''}
+                      onChange={e => setApprovalInputs(prev => ({...prev, [approval.id]: e.target.value}))}
+                    />
+                    <Button variant="outline" onClick={() => handleSendApprovalFeedback(approval.id)}>Post</Button>
+                  </div>
+                </div>
+                
+                {/* APPROVAL ACTIONS FOR CLIENTS */}
+                <div className="flex justify-between items-center pt-4 border-t border-zinc-800 mt-4">
+                   <div className="text-zinc-500 text-xs">
+                       {approval.status === ApprovalStatus.APPROVED ? (
+                            <span className="text-emerald-500 flex items-center"><CheckCircle2 className="w-4 h-4 mr-1"/> Approved</span>
+                       ) : (
+                            <span>Action required</span>
+                       )}
+                   </div>
+                   {user.role === UserRole.CLIENT && approval.status !== ApprovalStatus.APPROVED && (
                        <div className="flex gap-2">
-                          <Input 
-                            placeholder="Add timecoded notes or general feedback..." 
-                            className="bg-brand-black"
-                            value={approvalInputs[item.id] || ''}
-                            onChange={(e) => setApprovalInputs(prev => ({...prev, [item.id]: e.target.value}))}
-                            onKeyDown={(e) => {
-                              if(e.key === 'Enter') handleSendApprovalFeedback(item.id);
-                            }}
-                          />
-                          <Button variant="secondary" onClick={() => handleSendApprovalFeedback(item.id)}>Post</Button>
+                            <Button 
+                              variant="outline" 
+                              className="text-amber-500 hover:text-amber-400 border-amber-900/30 hover:bg-amber-900/20"
+                              onClick={() => handleUpdateApprovalStatus(approval, ApprovalStatus.CHANGES_REQUESTED)}
+                            >
+                              <AlertCircle className="w-4 h-4 mr-2" />
+                              Request Changes
+                            </Button>
+                            <Button 
+                              className="bg-emerald-600 hover:bg-emerald-500 text-white border-none"
+                              onClick={() => handleUpdateApprovalStatus(approval, ApprovalStatus.APPROVED)}
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Approve Asset
+                            </Button>
                        </div>
-                    </div>
+                   )}
                 </div>
               </Card>
             )})}
@@ -798,7 +1100,7 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
         )}
       </div>
 
-      {/* Add/Edit Milestone Modal */}
+      {/* Milestone Modal */}
       <Modal 
         isOpen={isMilestoneModalOpen} 
         onClose={() => setIsMilestoneModalOpen(false)} 
@@ -806,69 +1108,187 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
       >
         <form onSubmit={handleSaveMilestone} className="space-y-4">
           <div>
-            <label className="block text-xs text-zinc-400 mb-1">Milestone Title</label>
+            <label className="block text-xs text-zinc-400 mb-1">Title</label>
             <Input 
               value={editingMilestone.title || ''} 
-              onChange={e => setEditingMilestone(prev => ({...prev, title: e.target.value}))} 
-              placeholder="e.g. Color Grade Review" 
+              onChange={e => setEditingMilestone({...editingMilestone, title: e.target.value})}
               required 
             />
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">Due Date</label>
-              <div className="relative">
-                <Input 
-                  type="date"
-                  value={editingMilestone.dueDate || ''} 
-                  onChange={e => setEditingMilestone(prev => ({...prev, dueDate: e.target.value}))} 
-                  required 
-                />
-                <Calendar className="absolute right-3 top-2.5 w-4 h-4 text-zinc-500 pointer-events-none" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">Status</label>
-              <Select 
-                value={editingMilestone.status || MilestoneStatus.NOT_STARTED}
-                onChange={e => setEditingMilestone(prev => ({...prev, status: e.target.value as MilestoneStatus}))}
-              >
-                {Object.values(MilestoneStatus).map(s => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </Select>
-            </div>
-          </div>
-          
-          {/* Description input added for completeness */}
           <div>
-              <label className="block text-xs text-zinc-400 mb-1">Description (Optional)</label>
-              <Input 
-                value={editingMilestone.description || ''} 
-                onChange={e => setEditingMilestone(prev => ({...prev, description: e.target.value}))} 
-                placeholder="Brief details about this milestone" 
-              />
+            <label className="block text-xs text-zinc-400 mb-1">Due Date</label>
+            <Input 
+              type="date" 
+              value={editingMilestone.dueDate || ''} 
+              onChange={e => setEditingMilestone({...editingMilestone, dueDate: e.target.value})}
+              required 
+            />
           </div>
-
-          <div className="pt-4 flex justify-between gap-2">
-            <div>
-                {editingMilestone.id && (
-                   <Button 
-                     type="button" 
-                     variant="danger" 
-                     onClick={() => handleDeleteMilestone(editingMilestone.id!)}
-                   >
-                     Delete
-                   </Button>
-                )}
-            </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">Status</label>
+            <Select 
+              value={editingMilestone.status || MilestoneStatus.NOT_STARTED}
+              onChange={e => setEditingMilestone({...editingMilestone, status: e.target.value as MilestoneStatus})}
+            >
+              {Object.values(MilestoneStatus).map(s => <option key={s} value={s}>{s}</option>)}
+            </Select>
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">Description (Optional)</label>
+            <TextArea 
+              value={editingMilestone.description || ''} 
+              onChange={e => setEditingMilestone({...editingMilestone, description: e.target.value})}
+            />
+          </div>
+          <div className="pt-4 flex justify-between items-center">
+            {editingMilestone.id ? (
+                <Button 
+                    type="button" 
+                    variant="danger" 
+                    onClick={handleDeleteMilestoneFromForm}
+                >
+                    Delete Milestone
+                </Button>
+            ) : (
+                <div /> /* Spacer */
+            )}
             <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={() => setIsMilestoneModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Save Milestone</Button>
+                <Button type="button" variant="ghost" onClick={() => setIsMilestoneModalOpen(false)}>Cancel</Button>
+                <Button type="submit">Save</Button>
             </div>
           </div>
         </form>
+      </Modal>
+      
+      {/* Approval Modal */}
+      <Modal 
+        isOpen={isApprovalModalOpen} 
+        onClose={() => setIsApprovalModalOpen(false)} 
+        title={editingApproval.id ? "Edit Approval" : "Add Approval"}
+      >
+        <form onSubmit={handleSaveApproval} className="space-y-4">
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">Title *</label>
+            <Input 
+              value={editingApproval.title || ''} 
+              onChange={e => setEditingApproval({...editingApproval, title: e.target.value})}
+              required 
+              placeholder="e.g. v1 Rough Cut"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">Review Link (Vimeo / Frame.io / etc) *</label>
+            <Input 
+              value={editingApproval.linkToReview || ''} 
+              onChange={e => setEditingApproval({...editingApproval, linkToReview: e.target.value})}
+              required 
+              placeholder="https://vimeo.com/..."
+            />
+            <p className="text-[10px] text-zinc-500 mt-1">Vimeo links will be automatically embedded.</p>
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">Description</label>
+            <TextArea 
+              value={editingApproval.description || ''} 
+              onChange={e => setEditingApproval({...editingApproval, description: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1">Status</label>
+            <Select 
+              value={editingApproval.status || ApprovalStatus.PENDING}
+              onChange={e => setEditingApproval({...editingApproval, status: e.target.value as ApprovalStatus})}
+            >
+              {Object.values(ApprovalStatus).map(s => <option key={s} value={s}>{s}</option>)}
+            </Select>
+          </div>
+          <div className="pt-4 flex justify-between items-center">
+              {editingApproval.id ? (
+                  <Button 
+                      type="button" 
+                      variant="danger" 
+                      onClick={() => handleDeleteApproval(editingApproval.id!)}
+                  >
+                      Delete Approval
+                  </Button>
+              ) : (
+                  <div />
+              )}
+              <div className="flex gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setIsApprovalModalOpen(false)}>Cancel</Button>
+                  <Button type="submit">Save Approval</Button>
+              </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Project Modal */}
+      <Modal
+        isOpen={isEditProjectOpen}
+        onClose={() => setIsEditProjectOpen(false)}
+        title="Edit Project Details"
+      >
+        <form onSubmit={handleSaveProjectDetails} className="space-y-4">
+           <div>
+              <label className="block text-xs text-zinc-400 mb-1">Project Name</label>
+              <Input 
+                 value={editProjectData.name || ''} 
+                 onChange={e => setEditProjectData(prev => ({...prev, name: e.target.value}))} 
+                 required
+              />
+           </div>
+
+           <div>
+              <label className="block text-xs text-zinc-400 mb-1">Description</label>
+              <TextArea 
+                 value={editProjectData.description || ''} 
+                 onChange={e => setEditProjectData(prev => ({...prev, description: e.target.value}))} 
+              />
+           </div>
+
+           <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1">Status</label>
+                <Select 
+                  value={editProjectData.status || ProjectStatus.DISCOVERY}
+                  onChange={e => setEditProjectData(prev => ({...prev, status: e.target.value as ProjectStatus}))}
+                >
+                  {Object.values(ProjectStatus).map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </Select>
+              </div>
+           </div>
+
+           <div className="grid grid-cols-2 gap-4">
+              <div>
+                 <label className="block text-xs text-zinc-400 mb-1">Start Date</label>
+                 <Input 
+                    type="date"
+                    value={editProjectData.startDate || ''} 
+                    onChange={e => setEditProjectData(prev => ({...prev, startDate: e.target.value}))} 
+                 />
+              </div>
+              <div>
+                 <label className="block text-xs text-zinc-400 mb-1">Due Date</label>
+                 <Input 
+                    type="date"
+                    value={editProjectData.dueDate || ''} 
+                    onChange={e => setEditProjectData(prev => ({...prev, dueDate: e.target.value}))} 
+                 />
+              </div>
+           </div>
+
+           <div className="pt-4 flex justify-end gap-2">
+               <Button type="button" variant="ghost" onClick={() => setIsEditProjectOpen(false)}>Cancel</Button>
+               <Button type="submit">Save Changes</Button>
+           </div>
+        </form>
+        
+        <div className="border-t border-zinc-800 mt-6 pt-4 flex justify-between items-center">
+            <span className="text-xs text-red-900/60 uppercase font-medium">Danger Zone</span>
+            <Button type="button" variant="danger" onClick={handleDeleteProject}>Delete Project</Button>
+        </div>
       </Modal>
     </div>
   );
@@ -878,363 +1298,233 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
 
 const AdminClientsView = ({ navigate }: { navigate: (v: View) => void }) => {
   const [orgs, setOrgs] = useState<Organization[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newOrgName, setNewOrgName] = useState('');
-  const [newOrgContact, setNewOrgContact] = useState('');
-  const [newOrgEmail, setNewOrgEmail] = useState('');
-
+  
   useEffect(() => {
-    loadOrgs();
+    mockApi.getOrgs().then(setOrgs);
   }, []);
-
-  const loadOrgs = () => {
-    setIsLoading(true);
-    mockApi.getOrgs().then(data => {
-      setOrgs(data);
-      setIsLoading(false);
-    });
-  };
-
-  const handleCreateOrg = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const newOrg: Organization = {
-      id: `org${Date.now()}`,
-      name: newOrgName,
-      primaryContactName: newOrgContact,
-      primaryContactEmail: newOrgEmail
-    };
-    await mockApi.saveOrg(newOrg);
-    setNewOrgName('');
-    setNewOrgContact('');
-    setNewOrgEmail('');
-    setIsModalOpen(false);
-    loadOrgs();
-  };
 
   return (
     <div className="max-w-5xl mx-auto">
-       <div className="flex justify-between items-center mb-6">
-         <h1 className="text-2xl font-light text-white">Clients & Organizations</h1>
-         <Button variant="outline" onClick={() => setIsModalOpen(true)}>
+      <header className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-medium text-white mb-1">Clients & Organizations</h1>
+          <p className="text-zinc-400">Manage client accounts and access.</p>
+        </div>
+        <Button>
             <Plus className="w-4 h-4 mr-2" /> New Organization
-         </Button>
-       </div>
-
-       {isLoading ? (
-         <div className="flex justify-center py-12"><Loader2 className="animate-spin text-zinc-500" /></div>
-       ) : (
-         <div className="grid gap-4">
-            {orgs.map(org => (
-              <Card 
-                key={org.id} 
-                className="p-6 flex justify-between items-center group hover:border-zinc-500 cursor-pointer transition-colors"
-                onClick={() => navigate({ name: 'ADMIN_ORG_DETAIL', orgId: org.id })}
-              >
-                 <div>
-                   <h3 className="text-lg font-medium text-white group-hover:text-white transition-colors">{org.name}</h3>
-                   <p className="text-sm text-zinc-500">Primary: {org.primaryContactName} ({org.primaryContactEmail})</p>
-                 </div>
-                 <div className="flex items-center text-zinc-600 group-hover:text-zinc-300">
-                    <span className="text-sm mr-2">Manage</span>
-                    <ChevronRight className="w-4 h-4" />
-                 </div>
-              </Card>
-            ))}
-            {orgs.length === 0 && <p className="text-zinc-500 text-center py-10">No organizations found.</p>}
-         </div>
-       )}
-
-       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Organization">
-          <form onSubmit={handleCreateOrg} className="space-y-4">
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">Organization Name</label>
-              <Input value={newOrgName} onChange={e => setNewOrgName(e.target.value)} placeholder="e.g. Nike" required />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">Primary Contact Name</label>
-              <Input value={newOrgContact} onChange={e => setNewOrgContact(e.target.value)} placeholder="e.g. John Doe" required />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">Primary Contact Email</label>
-              <Input type="email" value={newOrgEmail} onChange={e => setNewOrgEmail(e.target.value)} placeholder="e.g. john@nike.com" required />
-            </div>
-            <div className="pt-4 flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Create Organization</Button>
-            </div>
-          </form>
-       </Modal>
+        </Button>
+      </header>
+      <div className="grid gap-4">
+        {orgs.map(org => (
+          <Card key={org.id} className="p-6 flex items-center justify-between group hover:border-zinc-600 transition-colors cursor-pointer" onClick={() => navigate({ name: 'ADMIN_ORG_DETAIL', orgId: org.id })}>
+             <div>
+               <h3 className="text-lg font-medium text-white">{org.name}</h3>
+               <p className="text-sm text-zinc-500">{org.primaryContactName} • {org.primaryContactEmail}</p>
+             </div>
+             <ChevronRight className="text-zinc-600 group-hover:text-white" />
+          </Card>
+        ))}
+        {orgs.length === 0 && <div className="text-zinc-500 italic">No organizations found.</div>}
+      </div>
     </div>
-  )
-}
+  );
+};
 
 // --- COMPONENT: ADMIN ORG DETAIL VIEW ---
 
 const AdminOrgDetailView = ({ orgId, navigate }: { orgId: string, navigate: (v: View) => void }) => {
   const [org, setOrg] = useState<Organization | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>([]);
   
-  // User Modal State
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null); // Track user being edited
-
-  const [newUserName, setNewUserName] = useState('');
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserJob, setNewUserJob] = useState('');
-  const [newUserPhone, setNewUserPhone] = useState('');
+  // New Project Modal State for specific org
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [newProject, setNewProject] = useState<Partial<Project>>({});
 
   useEffect(() => {
-    loadData();
+    mockApi.getOrg(orgId).then(val => val && setOrg(val));
+    mockApi.getProjectsByOrg(orgId).then(setProjects);
   }, [orgId]);
 
-  const loadData = async () => {
-    setIsLoading(true);
-    const [o, allUsers] = await Promise.all([
-      mockApi.getOrg(orgId),
-      mockApi.getUsers()
-    ]);
-    setOrg(o || null);
-    setUsers(allUsers.filter(u => u.organizationId === orgId));
-    setIsLoading(false);
-  };
-
-  const openAddUserModal = () => {
-    setEditingUser(null);
-    setNewUserName('');
-    setNewUserEmail('');
-    setNewUserPassword('');
-    setNewUserJob('');
-    setNewUserPhone('');
-    setIsUserModalOpen(true);
-  };
-
-  const openEditUserModal = (user: User) => {
-    setEditingUser(user);
-    setNewUserName(user.name);
-    setNewUserEmail(user.email);
-    setNewUserPassword(''); // Reset password field, only set if changing
-    setNewUserJob(user.jobTitle || '');
-    setNewUserPhone(user.phone || '');
-    setIsUserModalOpen(true);
-  };
-
-  const handleSaveUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // If creating, password is required
-    if (!editingUser && !newUserPassword) {
-      alert("Password is required for new users.");
-      return;
-    }
-
-    const id = editingUser ? editingUser.id : `u${Date.now()}`;
-    
-    const userPayload: User = {
-      id: id,
-      name: newUserName,
-      email: newUserEmail,
-      role: UserRole.CLIENT,
+  const handleOpenNewProject = () => {
+    setNewProject({
       organizationId: orgId,
-      // If editing and password is blank, keep old password. If new, use input.
-      password: (editingUser && !newUserPassword) ? editingUser.password : newUserPassword,
-      jobTitle: newUserJob,
-      phone: newUserPhone,
-      avatarUrl: editingUser?.avatarUrl // preserve avatar
+      status: ProjectStatus.DISCOVERY,
+      startDate: new Date().toISOString().split('T')[0]
+    });
+    setIsProjectModalOpen(true);
+  };
+
+  const handleCreateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProject.name || !newProject.organizationId) return;
+
+    const p: Project = {
+      id: `p${Date.now()}`,
+      organizationId: newProject.organizationId,
+      name: newProject.name,
+      description: newProject.description || '',
+      status: newProject.status as ProjectStatus,
+      startDate: newProject.startDate || new Date().toISOString().split('T')[0],
+      dueDate: newProject.dueDate
     };
 
-    await mockApi.saveUser(userPayload);
-    
-    setIsUserModalOpen(false);
-    loadData();
+    await mockApi.saveProject(p);
+    setProjects(prev => [p, ...prev]); // Update local list
+    setIsProjectModalOpen(false);
   };
 
-  const handleDeleteUser = async (userId: string, e?: React.MouseEvent) => {
-    // Prevent form submission or other side effects if called from button
-    e?.preventDefault();
-    e?.stopPropagation();
-
-    if(window.confirm('Are you sure you want to remove this user?')) {
-      await mockApi.deleteUser(userId);
-      if (isUserModalOpen) setIsUserModalOpen(false);
-      await loadData();
-    }
-  }
-
-  const handleDeleteOrg = async () => {
-    if(confirm('Are you sure? This will hide the organization.')) {
-      await mockApi.deleteOrg(orgId);
-      navigate({ name: 'ADMIN_CLIENTS' });
-    }
-  }
-
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-zinc-500" /></div>;
-  if (!org) return <div className="text-center py-12 text-zinc-500">Organization not found.</div>;
+  if (!org) return <div>Loading...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-         <button onClick={() => navigate({name: 'ADMIN_CLIENTS'})} className="text-xs text-zinc-500 hover:text-white mb-2 flex items-center">
+    <div className="max-w-5xl mx-auto">
+        <button onClick={() => navigate({name: 'ADMIN_CLIENTS'})} className="text-xs text-zinc-500 hover:text-white mb-4 flex items-center">
            &larr; Back to Clients
-         </button>
-         <div className="flex justify-between items-start">
-           <h1 className="text-3xl font-light text-white">{org.name}</h1>
-           <Button variant="danger" onClick={handleDeleteOrg} className="text-xs">Delete Org</Button>
-         </div>
-      </div>
-
-      <div className="grid gap-8">
-        {/* Org Details Card */}
-        <Card className="p-6">
-           <h3 className="text-sm font-medium text-zinc-300 mb-4 border-b border-zinc-800 pb-2">Organization Details</h3>
-           <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-zinc-500 uppercase">Primary Contact</label>
-                <p className="text-zinc-200">{org.primaryContactName}</p>
-              </div>
-              <div>
-                <label className="block text-xs text-zinc-500 uppercase">Contact Email</label>
-                <p className="text-zinc-200">{org.primaryContactEmail}</p>
-              </div>
-           </div>
+        </button>
+        <Card className="p-8 mb-8">
+            <h1 className="text-2xl font-medium text-white mb-4">{org.name}</h1>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1">Primary Contact</label>
+                    <p className="text-zinc-200">{org.primaryContactName}</p>
+                </div>
+                <div>
+                    <label className="block text-zinc-500 text-xs uppercase tracking-wider mb-1">Email</label>
+                    <p className="text-zinc-200">{org.primaryContactEmail}</p>
+                </div>
+            </div>
         </Card>
-
-        {/* Users Card */}
-        <Card className="p-6">
-           <div className="flex justify-between items-center mb-4 border-b border-zinc-800 pb-2">
-             <h3 className="text-sm font-medium text-zinc-300">Client Users</h3>
-             <Button variant="secondary" className="h-8 text-xs" onClick={openAddUserModal}>
-               <Plus className="w-3 h-3 mr-2" /> Add User
-             </Button>
-           </div>
-           
-           <div className="space-y-2">
-             {users.length === 0 ? (
-               <p className="text-sm text-zinc-500 italic">No users assigned yet.</p>
-             ) : (
-               users.map(u => (
-                 <div key={u.id} className="flex items-center justify-between p-3 bg-zinc-900/50 rounded border border-zinc-800/50">
-                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => openEditUserModal(u)}>
-                       <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs text-zinc-400 font-bold">
-                         {u.name.charAt(0)}
-                       </div>
-                       <div>
-                         <div className="flex items-center gap-2">
-                            <p className="text-sm text-zinc-200 font-medium hover:text-white transition-colors">{u.name}</p>
-                            {u.jobTitle && <span className="text-[10px] text-zinc-500 border border-zinc-700 px-1 rounded">{u.jobTitle}</span>}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-medium text-white">Projects</h2>
+                    <Button variant="secondary" className="h-7 text-xs" onClick={handleOpenNewProject}>
+                        <Plus className="w-3 h-3 mr-1.5" /> Add Project
+                    </Button>
+                </div>
+                <div className="space-y-4">
+                   {projects.map(p => (
+                      <div key={p.id} onClick={() => navigate({name: 'PROJECT_DETAIL', projectId: p.id})} className="cursor-pointer p-4 bg-zinc-900 border border-zinc-800 rounded hover:border-zinc-600 transition-colors">
+                         <div className="flex justify-between items-start">
+                            <h4 className="text-white font-medium">{p.name}</h4>
+                            <StatusBadge status={p.status} />
                          </div>
-                         <p className="text-xs text-zinc-500">{u.email} {u.phone && `• ${u.phone}`}</p>
-                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" className="h-8 w-8 p-0 text-zinc-500 hover:text-white" onClick={() => openEditUserModal(u)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" className="h-8 w-8 p-0 text-zinc-500 hover:text-red-400" onClick={(e) => handleDeleteUser(u.id, e)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                 </div>
-               ))
-             )}
-           </div>
-        </Card>
-      </div>
+                         <p className="text-xs text-zinc-500 mt-1">Due {p.dueDate}</p>
+                      </div>
+                   ))}
+                   {projects.length === 0 && (
+                     <div className="text-zinc-500 text-sm italic p-4 border border-dashed border-zinc-800 rounded">No active projects.</div>
+                   )}
+                </div>
+            </section>
+            
+            <section>
+                <h2 className="text-lg font-medium text-white mb-4">Associated Users</h2>
+                <div className="bg-zinc-900/30 rounded border border-zinc-800 p-4 text-zinc-500 text-sm italic">
+                    User management coming soon.
+                </div>
+            </section>
+        </div>
 
-      {/* Add/Edit User Modal */}
-      <Modal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} title={editingUser ? `Edit User: ${editingUser.name}` : `Add User to ${org.name}`}>
-          <form onSubmit={handleSaveUser} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+        {/* CREATE PROJECT MODAL (Scoped to Org) */}
+        <Modal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} title="Create New Project">
+             <form onSubmit={handleCreateProject} className="space-y-4">
                <div>
-                 <label className="block text-xs text-zinc-400 mb-1">Full Name *</label>
-                 <Input value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="e.g. Jane Smith" required />
+                  <label className="block text-xs text-zinc-400 mb-1">Organization</label>
+                  <div className="text-sm text-zinc-200 p-2 bg-zinc-900 border border-zinc-800 rounded">{org.name}</div>
                </div>
+
                <div>
-                 <label className="block text-xs text-zinc-400 mb-1">Email Address *</label>
-                 <Input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)} placeholder="e.g. jane@client.com" required />
+                  <label className="block text-xs text-zinc-400 mb-1">Project Name *</label>
+                  <Input 
+                     value={newProject.name || ''} 
+                     onChange={e => setNewProject(prev => ({...prev, name: e.target.value}))} 
+                     placeholder="e.g. Summer Campaign 2024"
+                     required
+                  />
                </div>
-            </div>
 
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1">
-                {editingUser ? "Change Password" : "Set Password *"}
-              </label>
-              <Input 
-                type="password" 
-                value={newUserPassword} 
-                onChange={e => setNewUserPassword(e.target.value)} 
-                placeholder={editingUser ? "Leave blank to keep current password" : "Minimum 6 characters"} 
-                required={!editingUser}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
                <div>
-                 <label className="block text-xs text-zinc-400 mb-1">Job Title (Optional)</label>
-                 <Input value={newUserJob} onChange={e => setNewUserJob(e.target.value)} placeholder="e.g. Creative Director" />
+                  <label className="block text-xs text-zinc-400 mb-1">Description</label>
+                  <TextArea 
+                     value={newProject.description || ''} 
+                     onChange={e => setNewProject(prev => ({...prev, description: e.target.value}))} 
+                     placeholder="Brief project summary..."
+                  />
                </div>
-               <div>
-                 <label className="block text-xs text-zinc-400 mb-1">Phone (Optional)</label>
-                 <Input value={newUserPhone} onChange={e => setNewUserPhone(e.target.value)} placeholder="e.g. 555-1234" />
+
+               <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-zinc-400 mb-1">Status</label>
+                    <Select 
+                      value={newProject.status || ProjectStatus.DISCOVERY}
+                      onChange={e => setNewProject(prev => ({...prev, status: e.target.value as ProjectStatus}))}
+                    >
+                      {Object.values(ProjectStatus).map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </Select>
+                  </div>
                </div>
-            </div>
 
-            {!editingUser && (
-              <div className="bg-blue-900/20 p-3 rounded border border-blue-900/30 flex gap-2">
-                <Mail className="w-4 h-4 text-blue-400 mt-0.5" />
-                <p className="text-xs text-blue-200">
-                  An email will be sent to the user with their login credentials.
-                </p>
-              </div>
-            )}
+               <div className="grid grid-cols-2 gap-4">
+                  <div>
+                     <label className="block text-xs text-zinc-400 mb-1">Start Date</label>
+                     <div className="relative">
+                       <Input 
+                          type="date"
+                          value={newProject.startDate || ''} 
+                          onChange={e => setNewProject(prev => ({...prev, startDate: e.target.value}))} 
+                       />
+                       <Calendar className="absolute right-3 top-2.5 w-4 h-4 text-zinc-500 pointer-events-none" />
+                     </div>
+                  </div>
+                  <div>
+                     <label className="block text-xs text-zinc-400 mb-1">Due Date (Optional)</label>
+                     <div className="relative">
+                       <Input 
+                          type="date"
+                          value={newProject.dueDate || ''} 
+                          onChange={e => setNewProject(prev => ({...prev, dueDate: e.target.value}))} 
+                       />
+                       <Calendar className="absolute right-3 top-2.5 w-4 h-4 text-zinc-500 pointer-events-none" />
+                     </div>
+                  </div>
+               </div>
 
-            <div className="pt-4 flex justify-between gap-2">
-              <div>
-                {editingUser && (
-                   <Button type="button" variant="danger" onClick={(e) => handleDeleteUser(editingUser.id, e)}>
-                     Delete User
-                   </Button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button type="button" variant="ghost" onClick={() => setIsUserModalOpen(false)}>Cancel</Button>
-                <Button type="submit">{editingUser ? "Save Changes" : "Add User"}</Button>
-              </div>
-            </div>
-          </form>
-      </Modal>
+               <div className="pt-4 flex justify-end gap-2">
+                  <Button type="button" variant="ghost" onClick={() => setIsProjectModalOpen(false)}>Cancel</Button>
+                  <Button type="submit">Create Project</Button>
+               </div>
+             </form>
+        </Modal>
     </div>
   );
 };
 
-// --- COMPONENT: SETTINGS ---
+// --- COMPONENT: SETTINGS VIEW ---
 
 const SettingsView = ({ user }: { user: User }) => {
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-light text-white mb-8">Settings</h1>
-      <div className="space-y-8">
-        <section>
-          <h2 className="text-lg font-medium text-white mb-4">Profile</h2>
-          <div className="grid gap-4">
-             <div>
-               <label className="block text-xs text-zinc-500 uppercase mb-1">Full Name</label>
-               <Input defaultValue={user.name} />
-             </div>
-             <div>
-               <label className="block text-xs text-zinc-500 uppercase mb-1">Email Address</label>
-               <Input defaultValue={user.email} disabled className="bg-zinc-900/50 text-zinc-500" />
-             </div>
-          </div>
-        </section>
-
-        <section className="pt-6 border-t border-zinc-800">
-          <h2 className="text-lg font-medium text-white mb-4">Security</h2>
-          <Button variant="outline">Change Password</Button>
-        </section>
-      </div>
+        <h1 className="text-2xl font-medium text-white mb-8">Settings</h1>
+        <Card className="p-6 space-y-6">
+            <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center text-2xl font-bold text-white">
+                    {user.name.charAt(0)}
+                </div>
+                <div>
+                    <h3 className="text-lg font-medium text-white">{user.name}</h3>
+                    <p className="text-zinc-500">{user.email}</p>
+                    <StatusBadge status={user.role} />
+                </div>
+            </div>
+            
+            <div className="pt-6 border-t border-zinc-800">
+                <h3 className="text-sm font-medium text-white mb-4">Security</h3>
+                <Button variant="outline" disabled>Change Password</Button>
+            </div>
+        </Card>
     </div>
   );
 };
