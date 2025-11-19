@@ -1,5 +1,3 @@
-
-
 import { 
   User, UserRole, Organization, Project, ProjectStatus, 
   Milestone, MilestoneStatus, Message, FileRecord, ApprovalItem, ApprovalStatus 
@@ -67,7 +65,8 @@ export const PROJECTS: Project[] = [
   }
 ];
 
-export const MILESTONES: Milestone[] = [
+// CHANGED: mutable 'let' so we can filter/reassign
+export let MILESTONES: Milestone[] = [
   {
     id: 'm1',
     projectId: 'p1',
@@ -309,8 +308,8 @@ export const mockApi = {
   deleteMilestone: async (id: string): Promise<void> => {
     return new Promise(resolve => {
       setTimeout(() => {
-        const idx = MILESTONES.findIndex(m => m.id === id);
-        if (idx >= 0) MILESTONES.splice(idx, 1);
+        // CHANGED: Actually filter the array to remove the item
+        MILESTONES = MILESTONES.filter(m => m.id !== id);
         resolve();
       }, 400);
     });

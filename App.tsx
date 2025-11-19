@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   User, UserRole, Project, Message, FileRecord, ApprovalItem, View, Organization,
@@ -348,21 +347,22 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
   const handleDeleteMilestone = async (milestoneId: string) => {
     if (!window.confirm('Permanently delete this milestone?')) return;
     
-    try {
-      // Optimistic UI update: filter it out immediately
-      setData(prevData => {
-        if (!prevData) return null;
-        return {
-          ...prevData,
-          milestones: prevData.milestones.filter(m => m.id !== milestoneId)
-        };
-      });
+    // 1. Optimistically update state
+    setData(prevData => {
+      if (!prevData) return null;
+      return {
+        ...prevData,
+        milestones: prevData.milestones.filter(m => m.id !== milestoneId)
+      };
+    });
 
-      // Call API in background
+    try {
+      // 2. Call API
       await mockApi.deleteMilestone(milestoneId);
       
-      // Close modal if it was open
+      // 3. Close modal if deleting from within modal
       setIsMilestoneModalOpen(false);
+      setEditingMilestone({});
     } catch (error) {
       console.error("Failed to delete milestone", error);
       alert("Could not delete milestone. Please refresh.");
@@ -537,7 +537,7 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
                   )}
                 </div>
                 
-                {/* Redesigned Timeline List */}
+                {/* Timeline List */}
                 <div className="space-y-3">
                   {data.milestones.map((milestone) => (
                     <div key={milestone.id} className="group flex items-start gap-4 p-4 rounded-lg bg-zinc-900/40 border border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/60 transition-all">
@@ -564,7 +564,7 @@ const ProjectDetailView = ({ user, projectId, navigate }: { user: User, projectI
                             </div>
                         </div>
 
-                        {/* Actions (Admin Only) - Explicitly separated */}
+                        {/* Actions (Admin Only) */}
                         {user.role === UserRole.ADMIN && (
                             <div className="flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity ml-2">
                                 <button 
