@@ -1,0 +1,93 @@
+{
+ "lake_water_surface_m": 279.59000000000003,
+ "tailwater_surface_m": 215.69,
+ "lake_water_surface_m_ft": 917.29,
+ "tailwater_surface_m_ft": 707.64,
+ "dam_axis": {
+  "south_end_utm": [
+   472149.8,
+   4049850.0
+  ],
+  "north_end_utm": [
+   472072.9,
+   4051132.5
+  ],
+  "chord_azimuth_deg_true": 356.57,
+  "chord_length_m": 1284.8,
+  "crest_length_along_centreline_m": 1356.0,
+  "crest_length_ft": 4449.0,
+  "local_azimuth_deg_true_at_stations": {
+   "0": 0.0,
+   "100": 8.7,
+   "200": 9.0,
+   "300": 9.2,
+   "400": 358.9,
+   "500": 13.2,
+   "600": 8.7,
+   "700": 358.7,
+   "800": 340.3,
+   "900": 335.8,
+   "1000": 346.9,
+   "1100": 333.3,
+   "1200": 353.8,
+   "1300": 15.2
+  },
+  "note": "centreline traced on the 947-ft crest deck in the 2020 lidar DSM; station 0 = south (right) abutment"
+ },
+ "sections_points": {
+  "crest_station_0000m": 6350,
+  "crest_station_0100m": 5632,
+  "crest_station_0200m": 632,
+  "crest_station_0300m": 2145,
+  "crest_station_0400m": 1963,
+  "crest_station_0500m": 2227,
+  "crest_station_0600m": 3268,
+  "crest_station_0700m": 3806,
+  "crest_station_0800m": 4330,
+  "crest_station_0900m": 3788,
+  "crest_station_1000m": 4087,
+  "crest_station_1100m": 3545,
+  "crest_station_1200m": 3465,
+  "crest_station_1300m": 3605,
+  "crest_station_0025m": 5585,
+  "crest_station_0050m": 4892,
+  "crest_station_0075m": 5805,
+  "crest_station_0125m": 3657,
+  "crest_station_0150m": 735,
+  "crest_station_0175m": 497,
+  "crest_station_0225m": 537,
+  "crest_station_0250m": 1509,
+  "crest_station_0275m": 2391,
+  "crest_station_0325m": 2545,
+  "crest_station_0350m": 3056,
+  "aux_spillway_along_channel_E472180": 5432,
+  "aux_spillway_across_N4051250": 4267,
+  "aux_spillway_across_N4051350": 3790,
+  "powerhouse_tailrace_EW_N4050200": 6087,
+  "visitor_center_EW_N4049800": 6187
+ },
+ "bridge_deck_clusters": [
+  {
+   "cells": 13374,
+   "E_min": 472145.5,
+   "E_max": 472235.5,
+   "N_min": 4049856.0,
+   "N_max": 4050337.0,
+   "deck_z_median_m": 288.76
+  },
+  {
+   "cells": 4661,
+   "E_min": 472139.5,
+   "E_max": 472272.5,
+   "N_min": 4051125.5,
+   "N_max": 4051239.5,
+   "deck_z_median_m": 289.0
+  }
+ ],
+ "laz_crops": {
+  "trd_lidar_2020_concrete_dam_powerhouse_hatchery.laz": 2043210,
+  "trd_lidar_2020_auxiliary_spillway.laz": 1097865,
+  "trd_lidar_2020_visitor_center.laz": 853546,
+  "trd_lidar_2020_aoi_thinned_1of8.laz": 2690951
+ }
+}

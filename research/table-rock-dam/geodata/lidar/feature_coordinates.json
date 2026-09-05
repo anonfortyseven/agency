@@ -1,0 +1,102 @@
+{
+ "crs": "EPSG:26915 (NAD83 / UTM 15N) and WGS84 lat/lon",
+ "note": "positions measured on 2020 lidar DSM + 2020 NAIP ortho; +-2 m",
+ "features": {
+  "south_abutment_station_0": {
+   "E_utm15n": 472149.8,
+   "N_utm15n": 4049850.0,
+   "lat": 36.593728,
+   "lon": -93.311359
+  },
+  "spillway_gate_1_south_pier": {
+   "E_utm15n": 472165.1,
+   "N_utm15n": 4049944.5,
+   "lat": 36.59458,
+   "lon": -93.311191
+  },
+  "spillway_centre": {
+   "E_utm15n": 472178.5,
+   "N_utm15n": 4050025.3,
+   "lat": 36.59531,
+   "lon": -93.311044
+  },
+  "spillway_gate_10_north_pier": {
+   "E_utm15n": 472192.4,
+   "N_utm15n": 4050107.2,
+   "lat": 36.596048,
+   "lon": -93.310892
+  },
+  "powerhouse_roof_centre": {
+   "E_utm15n": 472257.7,
+   "N_utm15n": 4050142.9,
+   "lat": 36.596372,
+   "lon": -93.310163
+  },
+  "concrete_embankment_junction_(class17_deck_north_end)": {
+   "E_utm15n": 472190.0,
+   "N_utm15n": 4050337.0,
+   "lat": 36.59812,
+   "lon": -93.310927
+  },
+  "embankment_crest_midpoint_station_900": {
+   "E_utm15n": 472206.0,
+   "N_utm15n": 4050725.4,
+   "lat": 36.601622,
+   "lon": -93.310762
+  },
+  "north_end_of_traced_crest_at_aux_spillway_bridge": {
+   "E_utm15n": 472072.9,
+   "N_utm15n": 4051132.5,
+   "lat": 36.605288,
+   "lon": -93.312265
+  },
+  "auxiliary_spillway_hwy165_bridge_deck_centre": {
+   "E_utm15n": 472206.0,
+   "N_utm15n": 4051182.0,
+   "lat": 36.605738,
+   "lon": -93.310778
+  },
+  "auxiliary_spillway_approach_channel_(lake_water)": {
+   "E_utm15n": 472205.0,
+   "N_utm15n": 4051250.0,
+   "lat": 36.606351,
+   "lon": -93.310792
+  },
+  "auxiliary_spillway_discharge_channel_floor": {
+   "E_utm15n": 472190.0,
+   "N_utm15n": 4051020.0,
+   "lat": 36.604277,
+   "lon": -93.310952
+  },
+  "dewey_short_visitor_center_(largest_roof_block)": {
+   "E_utm15n": 471825.0,
+   "N_utm15n": 4049678.0,
+   "lat": 36.592168,
+   "lon": -93.314983
+  },
+  "switchyard_(nDSM_lattice_objects)": {
+   "E_utm15n": 472560.0,
+   "N_utm15n": 4050300.0,
+   "lat": 36.597797,
+   "lon": -93.306789
+  },
+  "hatchery_raceways_centre": {
+   "E_utm15n": 472850.0,
+   "N_utm15n": 4050350.0,
+   "lat": 36.598256,
+   "lon": -93.303548
+  },
+  "tailrace_water_sample": {
+   "E_utm15n": 472700.0,
+   "N_utm15n": 4050200.0,
+   "lat": 36.5969,
+   "lon": -93.30522
+  },
+  "lake_water_sample": {
+   "E_utm15n": 471500.0,
+   "N_utm15n": 4050400.0,
+   "lat": 36.598667,
+   "lon": -93.318644
+  }
+ }
+}

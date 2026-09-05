@@ -1,0 +1,511 @@
+{
+ "subject": "Table Rock Dam, White River mile 528.8, Taney County (right abutment) / Stone County line, near Branson, Missouri, USA",
+ "compiled": "2026-09-05",
+ "owner_operator": "U.S. Army Corps of Engineers, Little Rock District (SWL); power marketed by Southwestern Power Administration",
+ "coordinate_reference": {
+  "horizontal": "EPSG:26915 NAD83 / UTM zone 15N (metres) unless noted; lat/lon WGS84",
+  "vertical_measured": "NAVD88 (GEOID18) metres, from USGS 3DEP lidar (MO_FEMANRCS_1_2020)",
+  "vertical_published": "USACE project datum, assumed NGVD29 feet; measured crest 947.4 ft NAVD88 vs published 947 ft suggests NAVD88 ~ NGVD29 + 0.3-0.5 ft here (confirm with NGS VERTCON)"
+ },
+ "published_specifications": {
+  "total_length_ft": {
+   "value": 6423,
+   "confidence": "V",
+   "sources": [
+    "USACE SWL Dam and Lake Information page",
+    "Encyclopedia of Arkansas",
+    "USACE info sheet PDF (bransontablerocklake.com mirror)"
+   ]
+  },
+  "concrete_gravity_section_length_ft": {
+   "value": 1602,
+   "confidence": "V"
+  },
+  "earth_embankment_length_ft_total": {
+   "value": 4821,
+   "confidence": "V"
+  },
+  "height_above_streambed_ft": {
+   "value": 252,
+   "confidence": "V"
+  },
+  "nid_height_ft": {
+   "value": 260,
+   "confidence": "S (NID-derived mirror)"
+  },
+  "concrete_volume_cu_yd": {
+   "value": 1230000,
+   "confidence": "V"
+  },
+  "embankment_fill_cu_yd": {
+   "value": 3320000,
+   "confidence": "V"
+  },
+  "concrete_crest_width_ft": {
+   "value": 35,
+   "confidence": "S"
+  },
+  "concrete_monoliths": {
+   "value": 30,
+   "confidence": "S (Branson Tri-Lakes News 2019)"
+  },
+  "main_spillway": {
+   "gated_section_length_ft": 531,
+   "gates": 10,
+   "gate_type": "tainter (radial)",
+   "gate_width_ft": 45,
+   "gate_height_ft": 37,
+   "ogee_crest_el_ft": 896,
+   "design_discharge_cfs": 558000,
+   "confidence": "V"
+  },
+  "auxiliary_spillway_2005": {
+   "gates": 8,
+   "weir_length_ft": 467,
+   "structure_height_ft": 85,
+   "top_el_ft_published": 948,
+   "design_discharge_cfs": 451000,
+   "completed": 2005,
+   "phase1_excavation_contractor": "Kiewit (254,000 cu yd)",
+   "main_contract": "Granite Construction, US$43.4M",
+   "program_cost_usd_approx": 65000000,
+   "confidence": "V for gates/discharge/year; S for others",
+   "note": "published 'crest el. 948' is physically the top of structure; measured Hwy 165 bridge deck 948.2 ft NAVD88 and channel floor ~863 ft agree with an 85-ft structure"
+  },
+  "powerhouse": {
+   "units": 4,
+   "turbine_type": "Francis",
+   "unit_rating_mw_original": 50,
+   "plant_mw_original": 200,
+   "plant_mw_swpa_current": 230,
+   "generator_mva_each": 52.63,
+   "generator_maker": "Westinghouse",
+   "penstocks": "4 x 18 ft diameter",
+   "full_power_discharge_cfs_swpa": 15100,
+   "units_1_2_online": "May/June 1959 (switch thrown 14 June 1959)",
+   "units_3_4_online": "1961",
+   "confidence": "V/S"
+  },
+  "elevations_ft_project_datum": {
+   "streambed_approx": 695,
+   "spillway_crest": 896,
+   "top_of_conservation_pool": 915,
+   "seasonal_conservation_pool_may_nov": 917,
+   "top_of_flood_control_pool": 931,
+   "top_of_surcharge_pool": 936,
+   "top_of_dam": 947,
+   "lake_taneycomo_normal_tailwater": 702,
+   "record_pool": {
+    "value": 935.47,
+    "date": "2011-04-27"
+   }
+  },
+  "storage_acre_ft": {
+   "total_at_931": 3462000,
+   "normal_at_915": 2702000,
+   "flood_control": 760000
+  },
+  "surface_area_acres_at_915": {
+   "values": [
+    42644,
+    43100
+   ],
+   "note": "survey vintage differs"
+  },
+  "shoreline_miles_at_915": {
+   "values": [
+    745,
+    758
+   ]
+  },
+  "drainage_area_sq_mi": 4020,
+  "nid_id": "MO30202",
+  "nid_hazard": "High",
+  "eia_plant_id": 2166,
+  "grand_id": 1026,
+  "chronology": {
+   "authorized": "Flood Control Act of 18 Aug 1941",
+   "construction_start": "October 1954 (ceremonial launching reported Oct 1952)",
+   "first_concrete": "1955-05-24",
+   "dam_completed": "August 1958",
+   "power_online": "1959-06-14",
+   "auxiliary_spillway": "2001-2005",
+   "dewey_short_visitor_center_opened": "2012-04-27",
+   "original_cost_usd_approx": 65000000
+  },
+  "record_release_cfs": {
+   "value": 72000,
+   "date": "late December 2015",
+   "confidence": "S (fox2now); 2011 and 2017 events 63,500-68,000 cfs per other sources"
+  }
+ },
+ "measured_geometry_lidar_2020_11_30": {
+  "crest_deck_elevation_m_navd88": 288.76,
+  "crest_deck_elevation_ft_navd88": 947.38,
+  "concrete_section_deck_extent_utm": {
+   "E_min": 472145.5,
+   "E_max": 472235.5,
+   "N_min": 4049856.0,
+   "N_max": 4050337.0,
+   "NS_extent_m": 481.0
+  },
+  "concrete_section_deck_length_ft_NS": 1578,
+  "crest_centreline": {
+   "south_end_utm": [
+    472149.8,
+    4049850.0
+   ],
+   "north_end_utm": [
+    472072.9,
+    4051132.5
+   ],
+   "chord_azimuth_deg_true": 356.57,
+   "chord_length_m": 1284.8,
+   "crest_length_along_centreline_m": 1356.0,
+   "crest_length_ft": 4449.0,
+   "local_azimuth_deg_true_at_stations": {
+    "0": 0.0,
+    "100": 8.7,
+    "200": 9.0,
+    "300": 9.2,
+    "400": 358.9,
+    "500": 13.2,
+    "600": 8.7,
+    "700": 358.7,
+    "800": 340.3,
+    "900": 335.8,
+    "1000": 346.9,
+    "1100": 333.3,
+    "1200": 353.8,
+    "1300": 15.2
+   },
+   "note": "centreline traced on the 947-ft crest deck in the 2020 lidar DSM; station 0 = south (right) abutment"
+  },
+  "spillway": {
+   "pier_stations_m_from_south_abutment": [
+    100.2,
+    118.2,
+    134.2,
+    150.2,
+    167.2,
+    183.2,
+    199.2,
+    215.2,
+    232.2,
+    249.2,
+    265.2
+   ],
+   "bays": 10,
+   "mean_pier_spacing_m": 16.5,
+   "mean_pier_spacing_ft": 54.1,
+   "gated_length_m": 165.0,
+   "gated_length_ft": 541,
+   "chute_surface_6_to_13m_downstream_of_deck_centreline_m": [
+    265.95,
+    265.46,
+    265.67,
+    265.96,
+    265.71,
+    266.08,
+    265.73,
+    265.74,
+    265.62,
+    265.82
+   ],
+   "south_end_wall_utm": {
+    "E_utm15n": 472165.1,
+    "N_utm15n": 4049944.5,
+    "lat": 36.59458,
+    "lon": -93.311191
+   },
+   "north_end_wall_utm": {
+    "E_utm15n": 472192.4,
+    "N_utm15n": 4050107.2,
+    "lat": 36.596048,
+    "lon": -93.310892
+   },
+   "centre_utm": {
+    "E_utm15n": 472178.5,
+    "N_utm15n": 4050025.3,
+    "lat": 36.59531,
+    "lon": -93.311044
+   }
+  },
+  "powerhouse": {
+   "roof_median_m": 245.95,
+   "roof_median_ft": 806.9,
+   "station_range_m": [
+    265.2,
+    356.8
+   ],
+   "length_along_dam_m": 91.5,
+   "length_along_dam_ft": 300.0,
+   "cross_t_range_m_downstream_of_crest_centreline": [
+    48.2,
+    72.8
+   ],
+   "width_m": 24.5,
+   "width_ft": 80.0,
+   "note": "connected roof plateau 243-250 m NAVD88 in crest coordinates (0.5 m unrolled DSM); station 0 = south abutment; the block sits immediately north of the 10 gated bays (stations 100-265) at the toe of the intake monoliths"
+  },
+  "powerhouse_roof_centre": {
+   "E_utm15n": 472257.7,
+   "N_utm15n": 4050142.9,
+   "lat": 36.596372,
+   "lon": -93.310163
+  },
+  "concrete_downstream_face_slope_H_per_V_at_station_200": 0.67,
+  "deck_width_m_at_intake_section": 13.0,
+  "embankment": {
+   "station_500m": {
+    "E": 472231.5,
+    "N": 4050337.9,
+    "crest_max_m": 288.73,
+    "crest_max_ft": 947.3,
+    "crest_flat_width_m_(within_0.6m_of_max)": 13.0,
+    "downstream_slope_H_per_V": 2.88,
+    "upstream_slope_H_per_V_(above_water)": 2.88
+   },
+   "station_600m": {
+    "E": 472247.1,
+    "N": 4050436.5,
+    "crest_max_m": 288.71,
+    "crest_max_ft": 947.2,
+    "crest_flat_width_m_(within_0.6m_of_max)": 13.0,
+    "downstream_slope_H_per_V": 2.78,
+    "upstream_slope_H_per_V_(above_water)": 2.78
+   },
+   "station_700m": {
+    "E": 472260.1,
+    "N": 4050535.3,
+    "crest_max_m": 288.86,
+    "crest_max_ft": 947.7,
+    "crest_flat_width_m_(within_0.6m_of_max)": 12.0,
+    "downstream_slope_H_per_V": 2.89,
+    "upstream_slope_H_per_V_(above_water)": 2.92
+   },
+   "station_800m": {
+    "E": 472243.7,
+    "N": 4050632.9,
+    "crest_max_m": 288.87,
+    "crest_max_ft": 947.7,
+    "crest_flat_width_m_(within_0.6m_of_max)": 13.0,
+    "downstream_slope_H_per_V": 2.83,
+    "upstream_slope_H_per_V_(above_water)": 3.07
+   },
+   "station_900m": {
+    "E": 472206.0,
+    "N": 4050725.4,
+    "crest_max_m": 288.84,
+    "crest_max_ft": 947.6,
+    "crest_flat_width_m_(within_0.6m_of_max)": 13.0,
+    "downstream_slope_H_per_V": 4.57,
+    "upstream_slope_H_per_V_(above_water)": 2.9
+   },
+   "station_1000m": {
+    "E": 472168.7,
+    "N": 4050818.0,
+    "crest_max_m": 288.82,
+    "crest_max_ft": 947.6,
+    "crest_flat_width_m_(within_0.6m_of_max)": 12.0,
+    "downstream_slope_H_per_V": 5.44,
+    "upstream_slope_H_per_V_(above_water)": 2.86
+   },
+   "station_1100m": {
+    "E": 472130.0,
+    "N": 4050910.0,
+    "crest_max_m": 288.83,
+    "crest_max_ft": 947.6,
+    "crest_flat_width_m_(within_0.6m_of_max)": 13.0,
+    "downstream_slope_H_per_V": 10.5,
+    "upstream_slope_H_per_V_(above_water)": 2.79
+   }
+  },
+  "water_surfaces_on_flight_date": {
+   "table_rock_lake_m": 279.59000000000003,
+   "table_rock_lake_ft": 917.29,
+   "lake_taneycomo_tailwater_m": 215.69,
+   "lake_taneycomo_tailwater_ft": 707.64
+  },
+  "auxiliary_spillway": {
+   "hwy165_bridge_deck_cluster": {
+    "cells": 4661,
+    "E_min": 472139.5,
+    "E_max": 472272.5,
+    "N_min": 4051125.5,
+    "N_max": 4051239.5,
+    "NS_extent_m": 114.0,
+    "deck_z_median_m": 289.0,
+    "deck_z_median_ft": 948.2,
+    "deck_z_p95_m": 289.07
+   },
+   "approach_channel_water_surface_m": 279.64,
+   "discharge_channel_floor_min_m": 263.04,
+   "discharge_channel_floor_min_ft": 863.0
+  },
+  "dewey_short_visitor_center": {
+   "E_min": 471801.0,
+   "E_max": 471850.0,
+   "N_min": 4049650.0,
+   "N_max": 4049707.0,
+   "footprint_m2": 910.0,
+   "top_z_p90_m": 304.23,
+   "top_z_p90_ft": 998.1,
+   "height_above_ground_p90_m": 16.47,
+   "height_median_m": 13.82
+  },
+  "transmission_structures_downstream": [
+   {
+    "E_min": 472970.0,
+    "E_max": 472990.0,
+    "N_min": 4050155.5,
+    "N_max": 4050174.0,
+    "footprint_m2": 154.0,
+    "top_z_p90_m": 244.88,
+    "top_z_p90_ft": 803.4,
+    "height_above_ground_p90_m": 27.38,
+    "height_median_m": 21.45
+   },
+   {
+    "E_min": 472947.0,
+    "E_max": 472962.5,
+    "N_min": 4050150.0,
+    "N_max": 4050169.5,
+    "footprint_m2": 127.0,
+    "top_z_p90_m": 241.49,
+    "top_z_p90_ft": 792.3,
+    "height_above_ground_p90_m": 23.06,
+    "height_median_m": 18.59
+   },
+   {
+    "E_min": 472720.5,
+    "E_max": 472736.5,
+    "N_min": 4050295.0,
+    "N_max": 4050310.5,
+    "footprint_m2": 118.0,
+    "top_z_p90_m": 252.25,
+    "top_z_p90_ft": 827.6,
+    "height_above_ground_p90_m": 19.18,
+    "height_median_m": 15.39
+   }
+  ],
+  "feature_coordinates": {
+   "south_abutment_station_0": {
+    "E_utm15n": 472149.8,
+    "N_utm15n": 4049850.0,
+    "lat": 36.593728,
+    "lon": -93.311359
+   },
+   "spillway_gate_1_south_pier": {
+    "E_utm15n": 472165.1,
+    "N_utm15n": 4049944.5,
+    "lat": 36.59458,
+    "lon": -93.311191
+   },
+   "spillway_centre": {
+    "E_utm15n": 472178.5,
+    "N_utm15n": 4050025.3,
+    "lat": 36.59531,
+    "lon": -93.311044
+   },
+   "spillway_gate_10_north_pier": {
+    "E_utm15n": 472192.4,
+    "N_utm15n": 4050107.2,
+    "lat": 36.596048,
+    "lon": -93.310892
+   },
+   "powerhouse_roof_centre": {
+    "E_utm15n": 472257.7,
+    "N_utm15n": 4050142.9,
+    "lat": 36.596372,
+    "lon": -93.310163
+   },
+   "concrete_embankment_junction_(class17_deck_north_end)": {
+    "E_utm15n": 472190.0,
+    "N_utm15n": 4050337.0,
+    "lat": 36.59812,
+    "lon": -93.310927
+   },
+   "embankment_crest_midpoint_station_900": {
+    "E_utm15n": 472206.0,
+    "N_utm15n": 4050725.4,
+    "lat": 36.601622,
+    "lon": -93.310762
+   },
+   "north_end_of_traced_crest_at_aux_spillway_bridge": {
+    "E_utm15n": 472072.9,
+    "N_utm15n": 4051132.5,
+    "lat": 36.605288,
+    "lon": -93.312265
+   },
+   "auxiliary_spillway_hwy165_bridge_deck_centre": {
+    "E_utm15n": 472206.0,
+    "N_utm15n": 4051182.0,
+    "lat": 36.605738,
+    "lon": -93.310778
+   },
+   "auxiliary_spillway_approach_channel_(lake_water)": {
+    "E_utm15n": 472205.0,
+    "N_utm15n": 4051250.0,
+    "lat": 36.606351,
+    "lon": -93.310792
+   },
+   "auxiliary_spillway_discharge_channel_floor": {
+    "E_utm15n": 472190.0,
+    "N_utm15n": 4051020.0,
+    "lat": 36.604277,
+    "lon": -93.310952
+   },
+   "dewey_short_visitor_center_(largest_roof_block)": {
+    "E_utm15n": 471825.0,
+    "N_utm15n": 4049678.0,
+    "lat": 36.592168,
+    "lon": -93.314983
+   },
+   "switchyard_(nDSM_lattice_objects)": {
+    "E_utm15n": 472560.0,
+    "N_utm15n": 4050300.0,
+    "lat": 36.597797,
+    "lon": -93.306789
+   },
+   "hatchery_raceways_centre": {
+    "E_utm15n": 472850.0,
+    "N_utm15n": 4050350.0,
+    "lat": 36.598256,
+    "lon": -93.303548
+   },
+   "tailrace_water_sample": {
+    "E_utm15n": 472700.0,
+    "N_utm15n": 4050200.0,
+    "lat": 36.5969,
+    "lon": -93.30522
+   },
+   "lake_water_sample": {
+    "E_utm15n": 471500.0,
+    "N_utm15n": 4050400.0,
+    "lat": 36.598667,
+    "lon": -93.318644
+   }
+  }
+ },
+ "files": {
+  "agent_reports": [
+   "01-engineering-specifications.md",
+   "02-history-timeline.md",
+   "03-photography-catalog.md",
+   "04-documents-technical-literature.md",
+   "05-gis-remote-sensing-sources.md",
+   "06-video-film-3d-assets.md",
+   "07-site-context-surroundings.md",
+   "08-hydrology-operations-data.md"
+  ],
+  "consolidation": [
+   "README.md",
+   "09-measured-geometry-from-lidar.md",
+   "10-geodata-products.md",
+   "11-3d-modeling-brief.md"
+  ],
+  "geodata_root": "geodata/",
+  "scripts": "scripts/"
+ }
+}
